@@ -35,14 +35,14 @@ app.post("/fundCustomer", async (req, res) => {
     try {
         // "customerAddress": "0x77e45C", "refundAmount": "0.00001"
         const tx = await contract.transferFunds(data.customerAddress, ethers.parseEther(data.refundAmount));
-        const receipt = await tx.wait();
-        const response = await mailgunClient.messages.create(process.env.MAILGUN_DOMAIN_NAME, {
+        await tx.wait();
+        await mailgunClient.messages.create(process.env.MAILGUN_DOMAIN_NAME, {
             from: "NeuroCreators <noreply@neurocreators.com>",
             to: [data.customerEmail],
             subject: "Return Payment Completed",
-            text: `We have sent you the return payment of ${data.refundAmount} ETH. Transaction Hash: ${receipt.transactionHash}`,
+            text: `We have sent you the return payment of ${data.refundAmount} ETH. Transaction Hash: ${tx.hash}`,
         })
-        res.status(200).send(`Customer Funded with ${data.refundAmount} ETH and this is the transaction id : ${receipt.transactionHash}`);
+        res.status(200).send(`Customer Funded with ${data.refundAmount} ETH and this is the transaction id : ${tx.hash}`);
     } catch (error) {
         console.log(error);
         res.status(402).send("Error in funding customer", error);
