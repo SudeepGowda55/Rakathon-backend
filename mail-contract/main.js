@@ -20,24 +20,6 @@ const contract = new ethers.Contract(contractAddress, contractAbi, wallet);
 const mg = new mailGun(formData);
 const mailgunClient = mg.client({ username: "api", key: process.env.MAILGUN_API_KEY });
 
-async function sendMail() {
-    try {
-        const response = await mailgunClient.messages.create(process.env.MAILGUN_DOMAIN_NAME, {
-            from: "NeuroCreators <noreply@neurocreators.com>",
-            to: ["manvithshetty1590@gmail.com"],
-            subject: "Return Accepted",
-            // text: `Your File ${message.filename} has been successfully converted ${message.username}! You can download it using this File URL ${message.fileurl} or by Login into your account`,
-            text: `Your Return has been accepted and you will receive the payment shortly`,
-            // html: "<h1>Testing some Mailgun awesomeness!</h1>"
-        })
-        return response.status
-    } catch (error) {
-        console.error(error)
-    }
-}
-
-await sendMail();
-
 app.get("/", (req, res) => {
     res.status(200).send("Hai from server");
 })
@@ -54,6 +36,12 @@ app.post("/fundCustomer", async (req, res) => {
         // "customerAddress": "0x77e45C", "refundAmount": "0.00001"
         const tx = await contract.transferFunds(data.customerAddress, ethers.parseEther(data.refundAmount));
         const receipt = await tx.wait();
+        const response = await mailgunClient.messages.create(process.env.MAILGUN_DOMAIN_NAME, {
+            from: "NeuroCreators <noreply@neurocreators.com>",
+            to: [data.customerEmail],
+            subject: "Return Payment Completed",
+            text: `We have sent you the return payment of ${data.refundAmount} ETH. Transaction Hash: ${receipt.transactionHash}`,
+        })
         res.status(200).send(`Customer Funded with ${data.refundAmount} ETH and this is the transaction id : ${receipt.transactionHash}`);
     } catch (error) {
         console.log(error);
